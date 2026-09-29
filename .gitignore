@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Local data and secrets
+*.db
+.env
+agent/config.json
+agent/agent_state.json
+*.tmp
+
+# Node (Stage 3 dashboard)
+node_modules/
+dist/
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+~$*.docx

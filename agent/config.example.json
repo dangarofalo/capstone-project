@@ -1,0 +1,9 @@
+{
+  "server_url": "http://127.0.0.1:8000",
+  "api_key": "PASTE_THE_KEY_FROM_create-agent_HERE",
+  "source": "windows",
+  "interval_seconds": 30,
+  "initial_lookback_hours": 24,
+  "state_file": "agent_state.json",
+  "linux_log_path": "/var/log/auth.log"
+}
