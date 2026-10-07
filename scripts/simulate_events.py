@@ -1,5 +1,6 @@
 """Send realistic fake security events to SentinelView for testing and demos.
 
+Each scenario is designed to trip one detection rule (normal raises none).
 Nothing is attacked: this only posts made-up events to your own server's API,
 so you can test without Administrator rights or a real attack.
 
@@ -33,11 +34,17 @@ def event(event_type, when, username, source_ip=None, logon_type="3", message=""
     }
 
 
+def business_hours_yesterday(now):
+    """A random time between 8 AM and 6 PM yesterday, in this computer's time zone."""
+    local = now.astimezone() - timedelta(days=1)
+    return local.replace(hour=8, minute=0, second=0, microsecond=0) + timedelta(minutes=random.uniform(0, 600))
+
+
 def normal_day(now):
-    """A day of ordinary office logins with the occasional typo."""
+    """A day of ordinary office logins with the occasional typo. Should raise no alerts."""
     events = []
     for _ in range(40):
-        when = now - timedelta(hours=random.uniform(0, 24))
+        when = business_hours_yesterday(now)
         user = random.choice(USERS[:4])
         if random.random() < 0.1:
             events.append(event("login_failure", when, user, random.choice(OFFICE_IPS), "2"))
@@ -66,8 +73,8 @@ def privilege_escalation(now):
 
 
 def off_hours(now):
-    """A remote desktop login at 3 AM."""
-    night = (now - timedelta(days=1)).replace(hour=3, minute=12, second=0, microsecond=0)
+    """A remote desktop login at 3 AM (this computer's time zone)."""
+    night = (now.astimezone() - timedelta(days=1)).replace(hour=3, minute=12, second=0, microsecond=0)
     return [event("login_success", night, "carol", random.choice(ATTACKER_IPS), "10", "[simulated] carol logged on via Remote Desktop")]
 
 
@@ -99,7 +106,8 @@ def main() -> int:
     )
     with urllib.request.urlopen(request, timeout=15) as response:
         result = json.loads(response.read())
-    print(f"Scenarios: {', '.join(names)} -> {result['accepted']} events stored for host {args.host}")
+    print(f"Scenarios: {', '.join(names)} -> {result['accepted']} events stored for host {args.host}, "
+          f"{result.get('alerts_created', 0)} new alerts")
     return 0
 
 

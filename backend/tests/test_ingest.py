@@ -40,7 +40,7 @@ def test_stores_events_and_assigns_severity(client, api_key):
         [make_event("1"), make_event("2", "admin_group_added", source_ip=None)],
     )
     assert resp.status_code == 200
-    assert resp.json() == {"accepted": 2, "duplicates": 0}
+    assert resp.json() == {"accepted": 2, "duplicates": 0, "alerts_created": 1}  # the admin event
 
     items = client.get("/api/events").json()["items"]
     severities = {e["event_type"]: e["severity"] for e in items}
@@ -51,7 +51,7 @@ def test_stores_events_and_assigns_severity(client, api_key):
 def test_resent_events_are_not_duplicated(client, api_key):
     post_batch(client, api_key, [make_event("1"), make_event("2")])
     resp = post_batch(client, api_key, [make_event("2"), make_event("3"), make_event("3")])
-    assert resp.json() == {"accepted": 1, "duplicates": 2}
+    assert resp.json() == {"accepted": 1, "duplicates": 2, "alerts_created": 0}
     assert client.get("/api/events").json()["total"] == 3
 
 

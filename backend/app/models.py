@@ -1,7 +1,7 @@
 """Database tables."""
 from datetime import datetime, timezone
 
-from sqlalchemy import ForeignKey, Index, String, Text, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, Index, String, Table, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
@@ -61,3 +61,44 @@ class Event(Base):
     message: Mapped[str | None] = mapped_column(Text)
 
     agent: Mapped[Agent] = relationship(back_populates="events")
+
+
+# Which events caused which alert (one alert can be built from many events).
+alert_events = Table(
+    "alert_events",
+    Base.metadata,
+    Column("alert_id", ForeignKey("alerts.id"), primary_key=True),
+    Column("event_id", ForeignKey("events.id"), primary_key=True),
+)
+
+
+class Alert(Base):
+    """Something suspicious a detection rule found, written for a non-expert to act on."""
+
+    __tablename__ = "alerts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    rule: Mapped[str] = mapped_column(String(40), index=True)
+    severity: Mapped[str] = mapped_column(String(10), index=True)
+    # open -> acknowledged (someone is looking at it) -> resolved
+    status: Mapped[str] = mapped_column(String(20), index=True, default="open")
+    title: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str] = mapped_column(Text)
+    recommendation: Mapped[str] = mapped_column(Text)
+    # Identifies "the same problem" so repeated attacks update one alert instead of
+    # creating hundreds, e.g. "brute_force:PC-01:ip:203.0.113.5".
+    dedup_key: Mapped[str] = mapped_column(String(255), index=True)
+    host: Mapped[str | None] = mapped_column(String(255), index=True)
+    username: Mapped[str | None] = mapped_column(String(255))
+    source_ip: Mapped[str | None] = mapped_column(String(45))
+    agent_id: Mapped[int | None] = mapped_column(ForeignKey("agents.id"))
+    event_count: Mapped[int] = mapped_column(default=0)
+    first_seen: Mapped[datetime]
+    last_seen: Mapped[datetime]
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(default=utcnow, onupdate=utcnow)
+    acknowledged_at: Mapped[datetime | None]
+    resolved_at: Mapped[datetime | None]
+    resolution_note: Mapped[str | None] = mapped_column(Text)
+
+    events: Mapped[list[Event]] = relationship(secondary=alert_events, order_by=Event.event_time)

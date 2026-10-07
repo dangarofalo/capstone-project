@@ -57,6 +57,7 @@ class EventBatch(BaseModel):
 class BatchResult(BaseModel):
     accepted: int
     duplicates: int
+    alerts_created: int = 0
 
 
 class EventOut(BaseModel):
@@ -79,6 +80,52 @@ class EventOut(BaseModel):
 class EventPage(BaseModel):
     total: int
     items: list[EventOut]
+
+
+AlertStatus = Literal["open", "acknowledged", "resolved"]
+AlertRule = Literal["brute_force", "admin_added", "off_hours_login", "agent_offline"]
+
+
+class AlertOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    rule: str
+    severity: str
+    status: str
+    title: str
+    description: str
+    recommendation: str
+    host: str | None
+    username: str | None
+    source_ip: str | None
+    event_count: int
+    first_seen: datetime
+    last_seen: datetime
+    created_at: datetime
+    acknowledged_at: datetime | None
+    resolved_at: datetime | None
+    resolution_note: str | None
+
+
+class AlertDetail(AlertOut):
+    events: list[EventOut]
+
+
+class AlertPage(BaseModel):
+    total: int
+    items: list[AlertOut]
+
+
+class AlertSummary(BaseModel):
+    open: int
+    acknowledged: int
+    resolved: int
+    active_by_severity: dict[str, int]  # open + acknowledged, per severity
+
+
+class AlertAction(BaseModel):
+    note: str | None = Field(default=None, max_length=1000)
 
 
 class AgentOut(BaseModel):
