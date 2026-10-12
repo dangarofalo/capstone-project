@@ -11,6 +11,7 @@ Computers can also be added from the dashboard's Computers page.
 """
 import argparse
 import getpass
+import re
 import sys
 
 from sqlalchemy import func, select
@@ -18,6 +19,7 @@ from sqlalchemy import func, select
 from .database import SessionLocal, init_db
 from .models import Agent, User
 from .passwords import hash_password, password_problem
+from .schemas import USERNAME_PATTERN
 from .security import generate_api_key, hash_api_key
 
 
@@ -35,7 +37,13 @@ def read_password() -> str | None:
     return password
 
 
-def create_user(name: str, role: str) -> int:
+def create_user(name: str | None, role: str) -> int:
+    if not name:
+        # Piped input from PowerShell can start with a byte-order mark.
+        name = (input("Username: ") if sys.stdin.isatty() else sys.stdin.readline()).lstrip("﻿").strip()
+    if not re.fullmatch(USERNAME_PATTERN, name) or not 3 <= len(name) <= 50:
+        print("Username must be 3-50 letters, numbers, dots, dashes, or underscores.", file=sys.stderr)
+        return 1
     with SessionLocal() as db:
         if db.scalar(select(User).where(func.lower(User.username) == name.lower())):
             print(f"A user named '{name}' already exists.", file=sys.stderr)
@@ -106,7 +114,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(prog="python -m app.manage")
     sub = parser.add_subparsers(dest="command", required=True)
     cu = sub.add_parser("create-user", help="add a dashboard user")
-    cu.add_argument("name")
+    cu.add_argument("name", nargs="?", help="asked for if left out")
     cu.add_argument("--role", choices=["admin", "viewer"], default="viewer")
     rp = sub.add_parser("reset-password", help="set a new password for a user (and re-enable them)")
     rp.add_argument("name")
