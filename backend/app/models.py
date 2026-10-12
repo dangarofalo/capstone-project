@@ -32,6 +32,8 @@ class Agent(Base):
     os: Mapped[str | None] = mapped_column(String(100))
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
     last_seen: Mapped[datetime | None]
+    # Set when an admin revokes the agent's key; the agent can no longer send events.
+    revoked_at: Mapped[datetime | None]
 
     events: Mapped[list["Event"]] = relationship(back_populates="agent")
 
@@ -98,7 +100,27 @@ class Alert(Base):
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(default=utcnow, onupdate=utcnow)
     acknowledged_at: Mapped[datetime | None]
+    acknowledged_by: Mapped[str | None] = mapped_column(String(50))
     resolved_at: Mapped[datetime | None]
+    resolved_by: Mapped[str | None] = mapped_column(String(50))
     resolution_note: Mapped[str | None] = mapped_column(Text)
 
     events: Mapped[list[Event]] = relationship(secondary=alert_events, order_by=Event.event_time)
+
+
+class User(Base):
+    """A person who can sign in to the dashboard.
+
+    admin:  everything, including managing alerts, computers, and users
+    viewer: read-only access to dashboards, events, alerts, and reports
+    """
+
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(50), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(255))
+    role: Mapped[str] = mapped_column(String(10), default="viewer")
+    is_active: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+    last_login: Mapped[datetime | None]

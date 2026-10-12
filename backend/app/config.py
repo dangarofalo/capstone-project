@@ -35,3 +35,32 @@ SMTP_STARTTLS = os.getenv("SENTINEL_SMTP_STARTTLS", "true").lower() == "true"
 SMTP_FROM = os.getenv("SENTINEL_SMTP_FROM", "sentinelview@localhost")
 ALERT_EMAIL_TO = os.getenv("SENTINEL_ALERT_EMAIL_TO", "")  # comma-separated
 EMAIL_MIN_SEVERITY = os.getenv("SENTINEL_EMAIL_MIN_SEVERITY", "high")
+
+# --- Dashboard users and login ------------------------------------------------
+# Key that signs login tokens. If unset, one is generated and saved to backend/.secret_key.
+SECRET_KEY = os.getenv("SENTINEL_SECRET_KEY", "")
+TOKEN_EXPIRE_MINUTES = int(os.getenv("SENTINEL_TOKEN_EXPIRE_MINUTES", "480"))  # 8 hours
+PASSWORD_ITERATIONS = int(os.getenv("SENTINEL_PASSWORD_ITERATIONS", "600000"))
+PASSWORD_MIN_LENGTH = 10
+# Lock a username out of the dashboard after this many wrong passwords...
+LOGIN_MAX_FAILURES = int(os.getenv("SENTINEL_LOGIN_MAX_FAILURES", "5"))
+LOGIN_LOCKOUT_MINUTES = int(os.getenv("SENTINEL_LOGIN_LOCKOUT_MINUTES", "5"))  # ...for this long
+# Creates this admin on startup if there are no users yet (used by Docker deployments).
+BOOTSTRAP_ADMIN_USERNAME = os.getenv("SENTINEL_ADMIN_USERNAME", "")
+BOOTSTRAP_ADMIN_PASSWORD = os.getenv("SENTINEL_ADMIN_PASSWORD", "")
+
+# --- Web dashboard -------------------------------------------------------------
+# Built React app (npm run build). Served by FastAPI when the folder exists.
+FRONTEND_DIST = Path(os.getenv("SENTINEL_FRONTEND_DIST", BASE_DIR.parent / "frontend" / "dist"))
+
+
+def get_secret_key() -> str:
+    global SECRET_KEY
+    if not SECRET_KEY:
+        key_file = BASE_DIR / ".secret_key"
+        if not key_file.exists():
+            import secrets
+
+            key_file.write_text(secrets.token_urlsafe(48), encoding="utf-8")
+        SECRET_KEY = key_file.read_text(encoding="utf-8").strip()
+    return SECRET_KEY

@@ -3,6 +3,9 @@ uvicorn[standard]==0.32.*
 sqlalchemy==2.0.*
 pydantic==2.*
 tzdata  # time zone data for business-hours rule (needed on Windows)
+pyjwt==2.*  # dashboard login tokens
+fpdf2==2.*  # PDF reports
+psycopg[binary]==3.*  # PostgreSQL driver (production)
 
 # testing
 pytest==8.*

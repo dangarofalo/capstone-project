@@ -46,7 +46,7 @@ def _fmt_list(items: list[str], limit: int = 3) -> str:
     return shown + (f" and {len(items) - limit} more" if len(items) > limit else "")
 
 
-def _local_time(utc_naive: datetime) -> datetime:
+def local_time(utc_naive: datetime) -> datetime:
     tz = ZoneInfo(config.TIMEZONE) if config.TIMEZONE else None  # None = server's zone
     return utc_naive.replace(tzinfo=timezone.utc).astimezone(tz)
 
@@ -149,7 +149,7 @@ def _admin_added(db: Session, event: Event, created: list[Alert]) -> None:
 def _off_hours_login(db: Session, event: Event, created: list[Alert]) -> None:
     if event.logon_type not in INTERACTIVE_LOGON_TYPES:
         return
-    local = _local_time(event.event_time)
+    local = local_time(event.event_time)
     if config.WORK_HOURS_START <= local.hour < config.WORK_HOURS_END:
         return
 

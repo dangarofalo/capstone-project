@@ -24,7 +24,7 @@ def post_batch(client, api_key, events, hostname="PC-01"):
 
 
 def test_health(client):
-    assert client.get("/api/health").json() == {"status": "ok"}
+    assert client.get("/api/health").json()["status"] == "ok"
 
 
 def test_rejects_missing_and_wrong_api_key(client, api_key):

@@ -1,11 +1,22 @@
 """Request and response shapes for the API (validated by Pydantic)."""
 import ipaddress
-from datetime import datetime
-from typing import Literal
+from datetime import datetime, timezone
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, PlainSerializer, field_validator
 
 from . import config
+
+
+
+def _as_utc_string(value: datetime) -> str:
+    """All times are stored as naive UTC; send them with a "Z" so browsers convert correctly."""
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+UTCDateTime = Annotated[datetime, PlainSerializer(_as_utc_string, return_type=str)]
 
 EventType = Literal[
     "login_success",
@@ -28,7 +39,7 @@ SEVERITY_BY_TYPE: dict[str, str] = {
 
 class EventIn(BaseModel):
     record_id: str = Field(min_length=1, max_length=64)
-    event_time: datetime
+    event_time: UTCDateTime
     event_type: EventType
     username: str | None = Field(default=None, max_length=255)
     source_ip: str | None = Field(default=None, max_length=45)
@@ -66,8 +77,8 @@ class EventOut(BaseModel):
     id: int
     agent_id: int
     host: str
-    event_time: datetime
-    received_at: datetime
+    event_time: UTCDateTime
+    received_at: UTCDateTime
     event_type: str
     severity: str
     username: str | None
@@ -100,11 +111,13 @@ class AlertOut(BaseModel):
     username: str | None
     source_ip: str | None
     event_count: int
-    first_seen: datetime
-    last_seen: datetime
-    created_at: datetime
-    acknowledged_at: datetime | None
-    resolved_at: datetime | None
+    first_seen: UTCDateTime
+    last_seen: UTCDateTime
+    created_at: UTCDateTime
+    acknowledged_at: UTCDateTime | None
+    acknowledged_by: str | None
+    resolved_at: UTCDateTime | None
+    resolved_by: str | None
     resolution_note: str | None
 
 
@@ -135,5 +148,92 @@ class AgentOut(BaseModel):
     name: str
     hostname: str | None
     os: str | None
-    created_at: datetime
-    last_seen: datetime | None
+    created_at: UTCDateTime
+    last_seen: UTCDateTime | None
+    revoked_at: UTCDateTime | None
+    status: Literal["online", "offline", "never_reported", "revoked"] = "never_reported"
+
+
+class AgentCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9 ._-]+$")
+
+
+class AgentKeyOut(BaseModel):
+    """Returned once when a computer is added or its key is replaced."""
+
+    agent: AgentOut
+    api_key: str
+
+
+# --- Users and login ----------------------------------------------------------------
+
+Role = Literal["admin", "viewer"]
+USERNAME_PATTERN = r"^[A-Za-z0-9._-]+$"
+
+
+class LoginIn(BaseModel):
+    username: str = Field(min_length=1, max_length=50)
+    password: str = Field(min_length=1, max_length=200)
+
+
+class UserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    username: str
+    role: str
+    is_active: bool
+    created_at: UTCDateTime
+    last_login: UTCDateTime | None
+
+
+class TokenOut(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int  # seconds
+    user: UserOut
+
+
+class UserCreate(BaseModel):
+    username: str = Field(min_length=3, max_length=50, pattern=USERNAME_PATTERN)
+    password: str = Field(min_length=1, max_length=200)
+    role: Role = "viewer"
+
+
+class UserUpdate(BaseModel):
+    role: Role | None = None
+    is_active: bool | None = None
+    password: str | None = Field(default=None, min_length=1, max_length=200)
+
+
+class PasswordChange(BaseModel):
+    current_password: str = Field(min_length=1, max_length=200)
+    new_password: str = Field(min_length=1, max_length=200)
+
+
+# --- Dashboard statistics -------------------------------------------------------------
+
+
+class NameCount(BaseModel):
+    name: str
+    count: int
+
+
+class Timeline(BaseModel):
+    bucket: Literal["hour", "day"]
+    labels: list[UTCDateTime]  # start of each bucket, UTC
+    series: dict[str, list[int]]  # event type -> count per bucket
+
+
+class Overview(BaseModel):
+    range_hours: int
+    start: UTCDateTime
+    end: UTCDateTime
+    totals: dict[str, int]
+    agents: dict[str, int]
+    severity_counts: dict[str, int]
+    event_type_counts: dict[str, int]
+    timeline: Timeline
+    top_failed_users: list[NameCount]
+    top_failed_ips: list[NameCount]
+    top_hosts: list[NameCount]

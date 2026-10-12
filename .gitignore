@@ -21,3 +21,8 @@ dist/
 Thumbs.db
 .DS_Store
 ~$*.docx
+
+# Server secrets
+backend/.secret_key
+.env
+!.env.example

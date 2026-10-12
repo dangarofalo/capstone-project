@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+/* Design tokens. Light values first; dark values are their own validated steps,
+   not an automatic inversion. Components use the Tailwind names in @theme below. */
+:root {
+  color-scheme: light;
+  --sv-page: #f6f6f3;
+  --sv-surface: #fcfcfb;
+  --sv-raised: #ffffff;
+  --sv-ink: #0b0b0b;
+  --sv-ink-2: #52514e;
+  --sv-muted: #75736d;
+  --sv-line: #e1e0d9;
+  --sv-line-strong: #c3c2b7;
+  --sv-brand: #1f3864;
+  --sv-brand-ink: #ffffff;
+  --sv-accent: #2a78d6;
+  --sv-hover: rgba(11, 11, 11, 0.04);
+
+  /* categorical series (fixed order) */
+  --sv-series-1: #2a78d6;
+  --sv-series-2: #eb6834;
+  --sv-series-3: #1baf7a;
+
+  /* status: reserved for severity / state, always shown with an icon + label */
+  --sv-good: #0ca30c;
+  --sv-good-ink: #006300;
+  --sv-warning: #fab219;
+  --sv-serious: #ec835a;
+  --sv-critical: #d03b3b;
+  --sv-critical-ink: #b42828;
+  --sv-neutral: #898781;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --sv-page: #0d0d0d;
+    --sv-surface: #1a1a19;
+    --sv-raised: #222221;
+    --sv-ink: #ffffff;
+    --sv-ink-2: #c3c2b7;
+    --sv-muted: #9a9890;
+    --sv-line: #2c2c2a;
+    --sv-line-strong: #383835;
+    --sv-brand: #2b4c86;
+    --sv-accent: #3987e5;
+    --sv-hover: rgba(255, 255, 255, 0.06);
+    --sv-series-1: #3987e5;
+    --sv-series-2: #d95926;
+    --sv-series-3: #199e70;
+    --sv-good-ink: #0ca30c;
+    --sv-critical-ink: #e66767;
+  }
+}
+
+@theme inline {
+  --color-page: var(--sv-page);
+  --color-surface: var(--sv-surface);
+  --color-raised: var(--sv-raised);
+  --color-ink: var(--sv-ink);
+  --color-ink-2: var(--sv-ink-2);
+  --color-muted: var(--sv-muted);
+  --color-line: var(--sv-line);
+  --color-line-strong: var(--sv-line-strong);
+  --color-brand: var(--sv-brand);
+  --color-brand-ink: var(--sv-brand-ink);
+  --color-accent: var(--sv-accent);
+  --color-hover: var(--sv-hover);
+  --color-good: var(--sv-good);
+  --color-good-ink: var(--sv-good-ink);
+  --color-warning: var(--sv-warning);
+  --color-serious: var(--sv-serious);
+  --color-critical: var(--sv-critical);
+  --color-critical-ink: var(--sv-critical-ink);
+  --color-neutral: var(--sv-neutral);
+  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body {
+  background: var(--sv-page);
+  color: var(--sv-ink);
+  font-family: var(--font-sans);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Form controls share one look. */
+@utility field {
+  @apply w-full rounded-md border border-line-strong bg-raised px-3 py-2 text-sm text-ink
+    placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30;
+}
+@utility btn {
+  @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium
+    transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-brand text-brand-ink hover:opacity-90;
+}
+@utility btn-secondary {
+  @apply btn border border-line-strong bg-raised text-ink hover:bg-hover;
+}
+@utility btn-danger {
+  @apply btn border border-critical/40 bg-raised text-critical-ink hover:bg-critical/10;
+}
+@utility card {
+  @apply rounded-xl border border-line bg-surface;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

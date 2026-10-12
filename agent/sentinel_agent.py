@@ -11,6 +11,7 @@ import json
 import logging
 import platform
 import socket
+import ssl
 import sys
 import time
 import urllib.error
@@ -44,7 +45,9 @@ def send_batch(config: dict, events: list[dict]) -> dict:
         headers={"Content-Type": "application/json", "X-API-Key": config["api_key"]},
         method="POST",
     )
-    with urllib.request.urlopen(request, timeout=15) as response:
+    # ca_file lets the agent trust a private certificate (e.g. Caddy's local CA).
+    context = ssl.create_default_context(cafile=config.get("ca_file") or None)
+    with urllib.request.urlopen(request, timeout=15, context=context) as response:
         return json.loads(response.read())
 
 
