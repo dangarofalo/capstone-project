@@ -68,7 +68,8 @@ cd ..\backend
 ```
 
 **Shortcut:** after the steps above, you can just double-click **`create-admin.bat`** (once) and
-then **`start-server.bat`** (every time) in the SentinelView folder. The commands below do the same.
+then **`start-server.bat`** (every time) in the SentinelView folder. Forgot a password? Double-click
+**`reset-password.bat`**. The commands below do the same.
 
 **1. Create your admin account** (asks for a password: 10+ characters, letters plus numbers or symbols):
 

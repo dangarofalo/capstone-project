@@ -40,7 +40,7 @@ def read_password() -> str | None:
 def create_user(name: str | None, role: str) -> int:
     if not name:
         # Piped input from PowerShell can start with a byte-order mark.
-        name = (input("Username: ") if sys.stdin.isatty() else sys.stdin.readline()).lstrip("﻿").strip()
+        name = (input("Username: ") if sys.stdin.isatty() else sys.stdin.readline()).lstrip("\ufeff").strip()
     if not re.fullmatch(USERNAME_PATTERN, name) or not 3 <= len(name) <= 50:
         print("Username must be 3-50 letters, numbers, dots, dashes, or underscores.", file=sys.stderr)
         return 1
@@ -57,7 +57,9 @@ def create_user(name: str | None, role: str) -> int:
     return 0
 
 
-def reset_password(name: str) -> int:
+def reset_password(name: str | None) -> int:
+    if not name:
+        name = (input("Username: ") if sys.stdin.isatty() else sys.stdin.readline()).lstrip("\ufeff").strip()
     with SessionLocal() as db:
         user = db.scalar(select(User).where(func.lower(User.username) == name.lower()))
         if user is None:
@@ -117,7 +119,7 @@ def main() -> int:
     cu.add_argument("name", nargs="?", help="asked for if left out")
     cu.add_argument("--role", choices=["admin", "viewer"], default="viewer")
     rp = sub.add_parser("reset-password", help="set a new password for a user (and re-enable them)")
-    rp.add_argument("name")
+    rp.add_argument("name", nargs="?", help="asked for if left out")
     sub.add_parser("list-users", help="show dashboard users")
     ca = sub.add_parser("create-agent", help="register a monitored computer and print its API key")
     ca.add_argument("name")
