@@ -122,3 +122,20 @@ def test_unknown_api_path_is_404_not_the_dashboard(client):
     resp = client.get("/api/does-not-exist")
     assert resp.status_code == 404
     assert resp.headers["content-type"].startswith("application/json")
+
+
+def test_daily_buckets_follow_the_business_time_zone(client, api_key, monkeypatch):
+    from datetime import datetime, timezone
+    from app import config
+    monkeypatch.setattr(config, "TIMEZONE", "America/New_York")
+    # 9 PM on Oct 14 in New York is 01:00 UTC on Oct 15; it belongs to Oct 14.
+    when = datetime(2026, 10, 15, 1, 0, tzinfo=timezone.utc)
+    send(client, api_key, [{"record_id": "1", "event_time": when.isoformat(), "event_type": "login_success",
+                            "username": "x", "logon_type": "2"}])
+    monkeypatch.setattr("app.routers.stats.utcnow", lambda: datetime(2026, 10, 19, 12, 0))
+    timeline = client.get("/api/stats/overview", params={"hours": 24 * 7}).json()["timeline"]
+    labels = timeline["labels"]
+    assert labels[0] == "2026-10-12T04:00:00Z"  # midnight Oct 12 in New York
+    assert len(labels) == 8
+    oct14 = labels.index("2026-10-14T04:00:00Z")
+    assert timeline["series"]["login_success"][oct14] == 1

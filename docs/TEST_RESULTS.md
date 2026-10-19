@@ -7,17 +7,17 @@
 
 | Suite | Tests | Passed | Failed |
 |---|---:|---:|---:|
-| Backend (pytest) | 68 | 68 | 0 |
+| Backend (pytest) | 69 | 69 | 0 |
 | Agent (pytest) | 11 | 11 | 0 |
 | Dashboard (Vitest) | 11 | 11 | 0 |
-| **Total automated** | **90** | **90** | **0** |
+| **Total automated** | **91** | **91** | **0** |
 | Manual end-to-end checks | 17 | 17 | 0 |
 
 Re-run with the commands in the [README](../README.md#tests).
 
 ## Automated tests
 
-### Backend: 68 tests
+### Backend: 69 tests
 
 | File | Tests | What it covers |
 |---|---:|---|
@@ -25,7 +25,7 @@ Re-run with the commands in the [README](../README.md#tests).
 | `test_detection.py` | 20 | Brute force: 4 failures no alert, 5 alert, spread-out failures ignored, ongoing attack updates one alert, new alert after resolve, separate IPs, password spraying, no-IP grouping. Admin-added alert. After-hours: 3 AM remote login, business hours and network logins ignored, time zone setting. Offline agent: alert, no duplicates, auto-resolve, never-reported agents ignored. Alert API: detail, acknowledge → resolve, 409 on repeat, 404, filters, summary. Email: only high alerts and only when configured; message contents |
 | `test_auth.py` | 15 | Sign-in returns a working token; case-insensitive username; same error for wrong password and unknown user; lockout after 5 failures; disabled user's token stops working; every data endpoint requires sign-in (3 kinds of bad credentials); expired token; token signed with another key; password change signs out old sessions; password checks; viewer can read everything; viewer can't change anything |
 | `test_users_agents.py` | 13 | Create/list/delete users; new user can sign in; duplicate and weak passwords rejected; role change and password reset; admins can't lock themselves out; demoting other admins; 404s. Add computer → key works → status Online; duplicate and invalid names; Offline status; revoke blocks the key, new key restores; upgrading a Stage 1 database adds new columns without losing data |
-| `test_stats_exports.py` | 12 | Overview totals, top lists, and agent counts; hourly and daily timeline buckets; active alert counts; CSV export respects filters; CSV formula injection neutralized; text search; alert CSV; acknowledge/resolve records who did it; PDF report (with non-Latin characters and with no data); security headers; unknown API paths return 404 JSON |
+| `test_stats_exports.py` | 13 | Overview totals, top lists, and agent counts; hourly and daily timeline buckets; daily buckets follow the business time zone; active alert counts; CSV export respects filters; CSV formula injection neutralized; text search; alert CSV; acknowledge/resolve records who did it; PDF report (with non-Latin characters and with no data); security headers; unknown API paths return 404 JSON |
 
 ### Agent: 11 tests
 
@@ -77,6 +77,7 @@ and after-hours scenarios).
 | PDF tables had a stray fill color and justified text | Visual check of the PDF | Reset fill color; left-aligned cells |
 | "2 days ago" shown for 38-hour-old alerts | Visual check of the overview | Days now round down; test added |
 | Usernames like `=HYPERLINK(...)` would run as formulas in Excel | Security review | Formula prefixes neutralized; test added |
+| 7- and 30-day charts labeled each day one day early (days were split at UTC midnight, 8 PM in New York) | Screenshots for the final presentation | Days now split at local midnight in the business time zone; test added |
 
 ## Not tested
 

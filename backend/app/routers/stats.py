@@ -1,5 +1,5 @@
 """Numbers for the dashboard overview page, computed in one request."""
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..detection import ACTIVE_STATUSES
+from ..detection import ACTIVE_STATUSES, local_time
 from ..models import Agent, Alert, Event, utcnow
 from ..schemas import Overview, Timeline
 from ..security import get_current_user
@@ -36,27 +36,41 @@ def _top(db: Session, column, *filters, limit: int = 5) -> list[dict]:
 
 
 def _timeline(db: Session, start: datetime, end: datetime, hours: int) -> Timeline:
-    """Events per hour (ranges up to 2 days) or per day, split by event type."""
-    step = timedelta(hours=1) if hours <= 48 else timedelta(days=1)
-    first = start.replace(minute=0, second=0, microsecond=0)
-    if step == timedelta(days=1):
-        first = first.replace(hour=0)
-    labels = []
-    t = first
-    while t <= end:
-        labels.append(t)
-        t += step
-    series = {etype: [0] * len(labels) for etype in EVENT_TYPES}
-
+    """Events per hour (ranges up to 2 days) or per local calendar day, split by event type."""
     # Bucketing in Python keeps this portable between SQLite and PostgreSQL.
     rows = db.execute(
         select(Event.event_time, Event.event_type).where(Event.event_time >= start, Event.event_time <= end)
-    )
+    ).all()
+
+    if hours <= 48:
+        step = timedelta(hours=1)
+        first = start.replace(minute=0, second=0, microsecond=0)
+        labels = []
+        t = first
+        while t <= end:
+            labels.append(t)
+            t += step
+        bucket_of = lambda event_time: int((event_time - first) / step)  # noqa: E731
+        bucket = "hour"
+    else:
+        # Days follow the business time zone, not UTC: in New York, UTC midnight is
+        # 8 PM the evening before, which would put each day's activity under the wrong date.
+        first_day = local_time(start).date()
+        days = (local_time(end).date() - first_day).days + 1
+        tz = local_time(start).tzinfo
+        labels = [
+            datetime.combine(first_day + timedelta(days=i), time.min, tz).astimezone(timezone.utc).replace(tzinfo=None)
+            for i in range(days)
+        ]
+        bucket_of = lambda event_time: (local_time(event_time).date() - first_day).days  # noqa: E731
+        bucket = "day"
+
+    series = {etype: [0] * len(labels) for etype in EVENT_TYPES}
     for event_time, event_type in rows:
-        index = int((event_time - first) / step)
+        index = bucket_of(event_time)
         if 0 <= index < len(labels) and event_type in series:
             series[event_type][index] += 1
-    return Timeline(bucket="hour" if step == timedelta(hours=1) else "day", labels=labels, series=series)
+    return Timeline(bucket=bucket, labels=labels, series=series)
 
 
 @router.get("/overview", response_model=Overview)
