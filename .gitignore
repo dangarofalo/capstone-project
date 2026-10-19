@@ -26,3 +26,6 @@ Thumbs.db
 backend/.secret_key
 .env
 !.env.example
+
+# Demo-video helper (contains an agent key)
+video-demo-attack.bat
